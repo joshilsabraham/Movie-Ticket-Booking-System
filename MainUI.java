@@ -4,7 +4,7 @@ import java.awt.event.*;
 import java.sql.*;
 import java.util.ArrayList;
 
-public class MovieBookingApp extends JFrame {
+public class MainUI extends JFrame {
 
     private JComboBox<String> movieList;
     private JComboBox<String> timeList;
@@ -132,4 +132,5 @@ public class MovieBookingApp extends JFrame {
         new MovieBookingApp();
     }
 }
+
 
