@@ -3,7 +3,6 @@ package view;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import java.awt.*;
-// Removed KeyAdapter and KeyEvent imports as they are no longer used
 import java.util.HashMap;
 import java.util.Map;
 import model.Show;
