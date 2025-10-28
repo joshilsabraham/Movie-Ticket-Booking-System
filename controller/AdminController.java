@@ -7,9 +7,9 @@ import model.MovieDAOImpl;
 import model.Show;
 import model.ShowDAO;
 import model.ShowDAOImpl;
-import model.Booking; 
-import model.BookingDAO; 
-import model.BookingDAOImpl; 
+import model.Booking;
+import model.BookingDAO;
+import model.BookingDAOImpl;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -17,13 +17,20 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.time.LocalDateTime; // Added for parsing timestamp
+import java.time.format.DateTimeFormatter; // Added for parsing timestamp
+import java.time.format.DateTimeParseException; // Added for parsing timestamp
 
 public class AdminController {
 
     private AdminDashboardView view;
     private MovieDAO movieDAO;
     private ShowDAO showDAO;
-    private BookingDAO bookingDAO; 
+    private BookingDAO bookingDAO;
+
+    // DateTimeFormatter for parsing and displaying timestamps in a specific format
+    private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final SimpleDateFormat DISPLAY_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
 
     public AdminController(AdminDashboardView view) {
         this.view = view;
@@ -31,28 +38,26 @@ public class AdminController {
         try {
             this.movieDAO = new MovieDAOImpl();
             this.showDAO = new ShowDAOImpl();
-            this.bookingDAO = new BookingDAOImpl(); 
+            this.bookingDAO = new BookingDAOImpl();
 
-            addListeners();
+            addListeners(); // All listeners added here
 
+            // Initial data loads
             loadMoviesIntoTable();
             loadMoviesIntoDropdown();
             loadShowsIntoTable();
-            loadBookingsIntoTable(); 
+            loadBookingsIntoTable();
 
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(
-                view.getParent(),
-                "Could not open Admin Dashboard. Please check database connection.\n\nError: " + e.getMessage(),
-                "Admin Panel Error",
-                JOptionPane.ERROR_MESSAGE
-            );
-            view.dispose();
+            // Centralized error reporting for initialization issues
+            showError("Could not open Admin Dashboard. Please check database connection.\n\nError: " + e.getMessage(), "Admin Panel Error");
+            view.dispose(); // Close the dashboard if DB connection fails
         }
     }
 
     private void addListeners() {
+        // --- Movie Tab Listeners ---
         view.getAddMovieButton().addActionListener(e -> onAddMovie());
         view.getUpdateMovieButton().addActionListener(e -> onUpdateMovie());
         view.getDeleteMovieButton().addActionListener(e -> onDeleteMovie());
@@ -63,27 +68,31 @@ public class AdminController {
             }
         });
 
+        // --- Show Tab Listeners ---
         view.getAddShowButton().addActionListener(e -> onAddShow());
         view.getDeleteShowButton().addActionListener(e -> onDeleteShow());
         view.getShowTable().getSelectionModel().addListSelectionListener(e -> {
              if (!e.getValueIsAdjusting()) {
                  boolean rowSelected = view.getShowTable().getSelectedRow() != -1;
                  view.getDeleteShowButton().setEnabled(rowSelected);
-            }
+             }
         });
 
-        view.getDeleteBookingButton().addActionListener(e -> onDeleteBooking()); // Added
-        view.getBookingTable().getSelectionModel().addListSelectionListener(e -> { // Added
+        // --- Booking Tab Listeners ---
+        view.getDeleteBookingButton().addActionListener(e -> onDeleteBooking());
+        view.getBookingTable().getSelectionModel().addListSelectionListener(e -> {
              if (!e.getValueIsAdjusting()) {
                  boolean rowSelected = view.getBookingTable().getSelectedRow() != -1;
                  view.getDeleteBookingButton().setEnabled(rowSelected);
-            }
+             }
         });
     }
 
+    // --- MOVIE MANAGEMENT ---
+
     private void loadMoviesIntoTable() {
         DefaultTableModel model = view.getMovieTableModel();
-        model.setRowCount(0);
+        model.setRowCount(0); // Clear existing data
 
         try {
             List<Movie> movies = movieDAO.getAllMovies();
@@ -102,31 +111,51 @@ public class AdminController {
         }
     }
 
+    // Helper method to get Movie data from the form fields
+    private Movie getMovieFromForm() throws NumberFormatException, IllegalArgumentException {
+        int id = -1; // Default for new movie, -1 indicates no ID yet
+        String idText = view.getMovieIdField().getText();
+        if (!idText.isEmpty()) {
+            id = Integer.parseInt(idText);
+        }
+
+        String title = view.getMovieTitleField().getText().trim();
+        String genre = view.getMovieGenreField().getText().trim();
+        String durationText = view.getMovieDurationField().getText().trim();
+        String posterPath = view.getMoviePosterField().getText().trim();
+
+        if (title.isEmpty() || genre.isEmpty() || durationText.isEmpty()) {
+            throw new IllegalArgumentException("Title, Genre, and Duration cannot be empty.");
+        }
+        
+        int duration = Integer.parseInt(durationText); // Throws NumberFormatException if invalid
+
+        if (id != -1) {
+            return new Movie(id, title, genre, duration, posterPath);
+        } else {
+            return new Movie(title, genre, duration, posterPath);
+        }
+    }
+
     private void onMovieTableSelect() {
         int selectedRow = view.getMovieTable().getSelectedRow();
         if (selectedRow == -1) {
-            onClearForm();
+            onClearForm(); // Clear form if no row is selected
             return;
         }
 
         DefaultTableModel model = view.getMovieTableModel();
-        String id = model.getValueAt(selectedRow, 0).toString();
-        String title = model.getValueAt(selectedRow, 1).toString();
-        String genre = model.getValueAt(selectedRow, 2).toString();
-        String duration = model.getValueAt(selectedRow, 3).toString();
-        String posterPath = model.getValueAt(selectedRow, 4) != null ? model.getValueAt(selectedRow, 4).toString() : ""; 
+        view.getMovieIdField().setText(model.getValueAt(selectedRow, 0).toString());
+        view.getMovieTitleField().setText(model.getValueAt(selectedRow, 1).toString());
+        view.getMovieGenreField().setText(model.getValueAt(selectedRow, 2).toString());
+        view.getMovieDurationField().setText(model.getValueAt(selectedRow, 3).toString());
+        view.getMoviePosterField().setText(model.getValueAt(selectedRow, 4) != null ? model.getValueAt(selectedRow, 4).toString() : "");
 
-        view.getMovieIdField().setText(id);
-        view.getMovieTitleField().setText(title);
-        view.getMovieGenreField().setText(genre);
-        view.getMovieDurationField().setText(duration);
-        view.getMoviePosterField().setText(posterPath);
-
+        // Adjust button states
         view.getAddMovieButton().setEnabled(false);
         view.getUpdateMovieButton().setEnabled(true);
         view.getDeleteMovieButton().setEnabled(true);
     }
-
 
     private void onClearForm() {
         view.getMovieIdField().setText("");
@@ -135,36 +164,32 @@ public class AdminController {
         view.getMovieDurationField().setText("");
         view.getMoviePosterField().setText("");
 
+        // Reset button states
         view.getAddMovieButton().setEnabled(true);
         view.getUpdateMovieButton().setEnabled(false);
         view.getDeleteMovieButton().setEnabled(false);
-        view.getMovieTable().clearSelection();
+        view.getMovieTable().clearSelection(); // Clear table selection
     }
 
     private void onAddMovie() {
         try {
-            String title = view.getMovieTitleField().getText();
-            String genre = view.getMovieGenreField().getText();
-            int duration = Integer.parseInt(view.getMovieDurationField().getText());
-            String posterPath = view.getMoviePosterField().getText();
+            Movie movie = getMovieFromForm(); // Use helper to get movie data
+            // ID will be -1 here as we expect a new movie
 
-            if (title.isEmpty() || genre.isEmpty()) {
-                showError("Title and Genre cannot be empty.");
-                return;
-            }
-            Movie movie = new Movie(title, genre, duration, posterPath);
             boolean success = movieDAO.addMovie(movie);
 
             if (success) {
                 showMessage("Movie added successfully!");
                 loadMoviesIntoTable();
-                loadMoviesIntoDropdown();
+                loadMoviesIntoDropdown(); // Refresh dropdown for new show creation
                 onClearForm();
             } else {
                 showError("Failed to add movie.");
             }
         } catch (NumberFormatException ex) {
             showError("Duration must be a valid number (e.g., 120).");
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage()); // Catches empty title/genre/duration
         } catch (SQLException ex) {
             ex.printStackTrace();
             showError("Database error: " + ex.getMessage());
@@ -173,25 +198,28 @@ public class AdminController {
 
     private void onUpdateMovie() {
         try {
-            int id = Integer.parseInt(view.getMovieIdField().getText());
-            String title = view.getMovieTitleField().getText();
-            String genre = view.getMovieGenreField().getText();
-            int duration = Integer.parseInt(view.getMovieDurationField().getText());
-            String posterPath = view.getMoviePosterField().getText();
+            Movie movie = getMovieFromForm(); // Use helper to get movie data
+            // Expect movie.getId() to be a valid ID here
 
-            Movie movie = new Movie(id, title, genre, duration, posterPath);
+            if (movie.getMovieId() == -1) { // Check if ID was actually parsed (shouldn't happen with button disabled)
+                showError("No movie selected for update.");
+                return;
+            }
+
             boolean success = movieDAO.updateMovie(movie);
 
             if (success) {
                 showMessage("Movie updated successfully!");
                 loadMoviesIntoTable();
-                loadMoviesIntoDropdown();
+                loadMoviesIntoDropdown(); // Refresh dropdown in case movie title changed
                 onClearForm();
             } else {
                 showError("Failed to update movie.");
             }
         } catch (NumberFormatException ex) {
             showError("ID and Duration must be valid numbers.");
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
         } catch (SQLException ex) {
             ex.printStackTrace();
             showError("Database error: " + ex.getMessage());
@@ -216,7 +244,8 @@ public class AdminController {
                     showMessage("Movie deleted successfully!");
                     loadMoviesIntoTable();
                     loadMoviesIntoDropdown();
-                    loadShowsIntoTable();
+                    loadShowsIntoTable(); // Shows related to this movie are also deleted
+                    loadBookingsIntoTable(); // Bookings related to this movie are also deleted
                     onClearForm();
                 } else {
                     showError("Failed to delete movie.");
@@ -227,12 +256,14 @@ public class AdminController {
         } catch (SQLException ex) {
             ex.printStackTrace();
             if (ex.getMessage().contains("foreign key constraint fails")) {
-                showError("Cannot delete movie. It is currently used by shows or bookings.");
+                showError("Cannot delete movie. It is currently referenced by existing shows or bookings (though cascade delete should handle shows and bookings, if configured correctly in DB).");
             } else {
                 showError("Database error: " + ex.getMessage());
             }
         }
     }
+
+    // --- SHOW MANAGEMENT ---
 
     private void loadMoviesIntoDropdown() {
         try {
@@ -256,9 +287,9 @@ public class AdminController {
             for (Show show : shows) {
                 model.addRow(new Object[]{
                     show.getShowId(),
-                    show.getMovieTitle(),
+                    show.getMovieTitle(), // Assumes Show object has this field from a JOIN
                     show.getScreenId(),
-                    new SimpleDateFormat("yyyy-MM-dd hh:mm a").format(show.getShowTime()),
+                    DISPLAY_DATE_FORMAT.format(show.getShowTime()), // Formatted for display
                     String.format("%.2f", show.getPrice())
                 });
             }
@@ -268,37 +299,56 @@ public class AdminController {
         }
     }
 
+    // Helper method to get Show data from the form fields
+    private Show getShowDetailsFromForm() throws NumberFormatException, IllegalArgumentException, DateTimeParseException {
+        Movie selectedMovie = (Movie) view.getMovieDropdown().getSelectedItem();
+        if (selectedMovie == null) {
+            throw new IllegalArgumentException("Please select a movie.");
+        }
+        int movieId = selectedMovie.getMovieId();
+
+        String screenText = view.getScreenField().getText().trim();
+        String priceText = view.getPriceField().getText().trim();
+        String timeString = view.getShowTimeField().getText().trim();
+
+        if (screenText.isEmpty() || priceText.isEmpty() || timeString.isEmpty()) {
+             throw new IllegalArgumentException("Screen ID, Price, and Show Time cannot be empty.");
+        }
+
+        int screenId = Integer.parseInt(screenText); // Throws NumberFormatException
+        double price = Double.parseDouble(priceText); // Throws NumberFormatException
+
+        // Use LocalDateTime for parsing, then convert to Timestamp
+        LocalDateTime localDateTime = LocalDateTime.parse(timeString, DATETIME_FORMATTER); // Throws DateTimeParseException
+        Timestamp showTime = Timestamp.valueOf(localDateTime);
+
+        return new Show(movieId, screenId, showTime, price);
+    }
+
+
     private void onAddShow() {
         try {
-            Movie selectedMovie = (Movie) view.getMovieDropdown().getSelectedItem();
-            if (selectedMovie == null) {
-                showError("Please select a movie.");
-                return;
-            }
-            int movieId = selectedMovie.getMovieId();
-            int screenId = Integer.parseInt(view.getScreenField().getText());
-            double price = Double.parseDouble(view.getPriceField().getText());
+            Show show = getShowDetailsFromForm(); // Use helper to get show data
 
-            String timeString = view.getShowTimeField().getText();
-            Timestamp showTime = Timestamp.valueOf(timeString + ":00");
-
-            Show show = new Show(movieId, screenId, showTime, price);
             boolean success = showDAO.addShow(show);
 
             if (success) {
                 showMessage("Show added successfully!");
                 loadShowsIntoTable();
+                loadBookingsIntoTable(); // A new show might create possibilities for bookings
+                // Clear form fields after successful add
                 view.getScreenField().setText("");
                 view.getShowTimeField().setText("");
                 view.getPriceField().setText("");
             } else {
                 showError("Failed to add show.");
             }
-
         } catch (NumberFormatException ex) {
             showError("Screen and Price must be valid numbers.");
         } catch (IllegalArgumentException ex) {
-             showError("Invalid Timestamp format. Use YYYY-MM-DD HH:MM (24-hour format, e.g., 14:30 for 2:30 PM)");
+            showError(ex.getMessage()); // Catches empty fields or no movie selected
+        } catch (DateTimeParseException ex) {
+             showError("Invalid Showtime format. Use YYYY-MM-DD HH:MM (e.g., 2023-10-27 14:30)");
         } catch (SQLException ex) {
             ex.printStackTrace();
             showError("Database error: " + ex.getMessage());
@@ -328,20 +378,23 @@ public class AdminController {
                 if (success) {
                     showMessage("Show deleted successfully!");
                     loadShowsIntoTable();
+                    loadBookingsIntoTable(); // Bookings for this show might be deleted
                     view.getDeleteShowButton().setEnabled(false);
                 } else {
                     showError("Failed to delete show.");
                 }
             } catch (SQLException ex) {
                 ex.printStackTrace();
-                 if (ex.getMessage().contains("foreign key constraint fails")) {
-                    showError("Cannot delete show. It has associated bookings.\nDelete associated bookings first.");
-                 } else {
+                if (ex.getMessage().contains("foreign key constraint fails")) {
+                    showError("Cannot delete show. It has associated bookings.\nDelete associated bookings first (if cascade delete is not set).");
+                } else {
                     showError("Database error: " + ex.getMessage());
-                 }
+                }
             }
         }
     }
+
+    // --- BOOKING MANAGEMENT ---
 
     private void loadBookingsIntoTable() {
         DefaultTableModel model = view.getBookingTableModel();
@@ -354,11 +407,11 @@ public class AdminController {
                     booking.getBookingId(),
                     booking.getCustomerName(),
                     booking.getCustomerPhone(),
-                    booking.getMovieTitle(),
-                    booking.getFormattedShowTime(),
+                    booking.getMovieTitle(), // Assumes Booking object has this from a JOIN
+                    booking.getFormattedShowTime(), // Assumes Booking object handles formatting
                     booking.getSelectedSeats(),
                     String.format("%.2f", booking.getTotalAmount()),
-                    booking.getFormattedBookingTime()
+                    booking.getFormattedBookingTime() // Assumes Booking object handles formatting
                 });
             }
         } catch (SQLException e) {
@@ -389,7 +442,7 @@ public class AdminController {
                 boolean success = bookingDAO.deleteBooking(bookingId);
                 if (success) {
                     showMessage("Booking deleted successfully!");
-                    loadBookingsIntoTable();
+                    loadBookingsIntoTable(); // Refresh table
                     view.getDeleteBookingButton().setEnabled(false);
                 } else {
                     showError("Failed to delete booking.");
@@ -401,12 +454,15 @@ public class AdminController {
         }
     }
 
-
     private void showMessage(String message) {
         JOptionPane.showMessageDialog(view, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void showError(String message) {
         JOptionPane.showMessageDialog(view, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void showError(String message, String title) {
+        JOptionPane.showMessageDialog(view, message, title, JOptionPane.ERROR_MESSAGE);
     }
 }
