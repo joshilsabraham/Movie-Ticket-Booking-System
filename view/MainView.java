@@ -58,11 +58,11 @@ public class MainView extends JFrame {
                 new Font("Arial", Font.BOLD, 14)));
 
         movieGridPanel = new JPanel(new GridLayout(0, 4, 10, 10));
-        
+
         JScrollPane scrollPane = new JScrollPane(movieGridPanel);
         scrollPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        scrollPane.setPreferredSize(new Dimension(0, 350)); 
-        
+        scrollPane.setPreferredSize(new Dimension(0, 350));
+
         panel.add(scrollPane, BorderLayout.CENTER);
         return panel;
     }
@@ -76,15 +76,15 @@ public class MainView extends JFrame {
 
     private JPanel createLeftSelectionPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
-        
+
         JPanel showtimePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         showtimePanel.setBorder(BorderFactory.createTitledBorder(" Select a Showtime "));
-        
+
         showTimesComboBox = new JComboBox<>();
         showTimesComboBox.setFont(new Font("Arial", Font.PLAIN, 14));
         showTimesComboBox.setPreferredSize(new Dimension(200, 30));
         showtimePanel.add(showTimesComboBox);
-        
+
         panel.add(showtimePanel, BorderLayout.NORTH);
 
         JPanel seatGridPanel = new JPanel(new BorderLayout(10, 10));
@@ -101,7 +101,7 @@ public class MainView extends JFrame {
         JPanel grid = new JPanel(new GridLayout(SEAT_ROWS, SEAT_COLS, 5, 5));
         grid.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         seatButtons = new HashMap<>();
-        
+
         char rowChar = 'A';
         for (int r = 0; r < SEAT_ROWS; r++) {
             for (int c = 1; c <= SEAT_COLS; c++) {
@@ -110,14 +110,14 @@ public class MainView extends JFrame {
                 seatButton.setFont(new Font("Arial", Font.BOLD, 12));
                 seatButton.setMargin(new Insets(2, 2, 2, 2));
                 seatButton.setEnabled(false);
-                
+
                 seatButtons.put(seatName, seatButton);
                 grid.add(seatButton);
             }
             rowChar++;
         }
         seatGridPanel.add(grid, BorderLayout.CENTER);
-        
+
         panel.add(seatGridPanel, BorderLayout.CENTER);
         return panel;
     }
@@ -142,26 +142,27 @@ public class MainView extends JFrame {
         formPanel.add(new JLabel("Phone Number:"), gbc);
         gbc.gridx = 1; gbc.gridy = 1; gbc.fill = GridBagConstraints.HORIZONTAL;
         customerPhoneField = new JTextField(15);
+        // KeyListener code was removed from here
         formPanel.add(customerPhoneField, gbc);
-        
+
         panel.add(formPanel, BorderLayout.NORTH);
 
         totalAmountLabel = new JLabel("Total: Rs. 0.00");
         totalAmountLabel.setFont(new Font("Arial", Font.BOLD, 24));
         totalAmountLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        
+
         panel.add(totalAmountLabel, BorderLayout.CENTER);
         return panel;
     }
 
     private JPanel createBookingBar() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 10));
-        
+
         bookButton = new JButton("Book Selected Seats");
         bookButton.setFont(new Font("Arial", Font.BOLD, 18));
         bookButton.setEnabled(false);
-        bookButton.setPreferredSize(new Dimension(300, 50)); 
-        
+        bookButton.setPreferredSize(new Dimension(300, 50));
+
         panel.add(bookButton);
         return panel;
     }
@@ -197,7 +198,7 @@ public class MainView extends JFrame {
     public JButton getBookButton() {
         return bookButton;
     }
-    
+
     public void addShowTime(Show show) {
         showTimesComboBox.addItem(show);
     }
