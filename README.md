@@ -80,17 +80,3 @@ README.md     ← this file
 
 This project is licensed under the **MIT License**.
 See the [LICENSE](LICENSE) file for more details.
-
-
-
-## 💡 Suggestions / Extras (you can include these if you want)
-
-* **Badges** (place at the top): Java version, license, build status. Example:
-
-  ```markdown
-  ![Java](https://img.shields.io/badge/java-17+-blue)
-  ![License](https://img.shields.io/badge/license-MIT-green)
-  ```
-* **Contributing**: Add a CONTRIBUTING.md if you want others to help.
-* **Changelog**: Add a CHANGELOG.md for releases / milestones.
-* 
